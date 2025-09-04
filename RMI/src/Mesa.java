@@ -57,12 +57,14 @@ public class Mesa {
         
         Mesa mesa = new Mesa();
         mesa.initRegistry(host, 6600);
+        System.out.println(mesa.getStub());
         
         try {
             mesa.pedirCardapio();
-            // ...
-        } catch (RemoteException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
+        System.out.println("OK");
+        // ...
     }    
 }   
