@@ -1,81 +1,98 @@
-import java.rmi.RemoteException;
+import java.rmi.*;
+import java.rmi.server.*;
+import java.rmi.registry.*;
 import java.util.ArrayList;
-import java.util.Scanner;
+import java.util.Random;
+import java.util.random.*;
 
 public class ADM implements Restaurante {
-
-    private final Scanner scan = new Scanner(System.in);
-    private ArrayList<Comanda> comandas; //  Cada comanda possui um uma mesa e um cliente
-    private ArrayList<Integer> mesas; //  Adicionado para poder controlar as mesas
     
+    private ArrayList<Comanda> comandas;
+    private Random rand = new Random();  
+    private Cozinha stubCozinha;
+    private Restaurante stubRestaurante;
+    private int nextId = 0;
+
+    public void setStubCozinha(Cozinha stubCozinha) {
+        this.stubCozinha = stubCozinha;
+    }
+
+    public void setStubRestaurante(Restaurante stubRestaurante) {
+        this.stubRestaurante = stubRestaurante;
+    }
+
     public ADM() {
-        this.comandas = new ArrayList<>();
-        this.mesas = new ArrayList<>();
+        this.comandas = new ArrayList<Comanda>();
     }
 
-    public int novaMesa(int mesa) {
-        if(!(mesas.contains(mesa))) {
-            mesas.add(mesa);
-            return 1;
-        }
-    }
+    // métodos da interface Restaurante
 
-    @Override
-    public int novaComanda(String nome, int mesa) throws RemoteException {
-        try {
-            if(mesas.contains(mesa)) {
-                Comanda cmd = new Comanda(nome, mesa);
-                comandas.add(cmd);
-                return 1;
-            }
-            else throw new Exception("A mesa desejada não existe!");
-        } catch (Exception e) {
-            System.out.println(e);
-        }
-        return 0;
+     @Override
+    public int novaComanda(String nome, int mesa) throws RemoteException {        
+        
+        Comanda cm = new Comanda(mesa, nextId++, nome);
+        comandas.add(cm);
+
+        return cm.getId();
     }
 
     @Override
     public String[] consultarCardapio() throws RemoteException {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return Menu.getMenuItems();
     }
 
     @Override
     public String fazerPedido(int comanda, String[] pedido) throws RemoteException {
-        throw new UnsupportedOperationException("Not supported yet.");
+        int idPreparo = stubCozinha.novoPreparo(comanda, pedido);
+        
+        return "OK";
     }
 
     @Override
     public float valorComanda(int comanda) throws RemoteException {
-        throw new UnsupportedOperationException("Not supported yet.");
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'valorComanda'");
     }
 
     @Override
     public boolean fecharComanda(int comanda) throws RemoteException {
-        throw new UnsupportedOperationException("Not supported yet.");
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'fecharComanda'");
     }
 
-    /* ********************* Cliente para cozinha ************************
+    
 
-    try {
-         // Obtém uma referência para o registro do RMI
-         Registry registry = LocateRegistry.getRegistry(host,port);
+    public static void main(String[] args) {
+        // Server para Mesa
+        try {
+            // Instancia o objeto servidor e a sua stub
+            ADM server = new ADM();
+            Restaurante stubRestaurante = (Restaurante) UnicastRemoteObject.exportObject(server, 0);
 
-         // Obtém a stub do servidor
-         Cozinha stub= (Cozinha) registry.lookup("Cozinha");
+            // Registra a stub no RMI Registry para que ela seja obtida pelos clientes
+            Registry registryServer = LocateRegistry.createRegistry(6600);
 
-         // Utilizar o metodo servidor
-            ...
-      } catch (Exception ex) {
-         ex.printStackTrace();
+            registryServer.bind("Atendimento", stubRestaurante);
+            System.out.println("Servidor pronto");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
 
+        // Cliente para Chef
+        String host = (args.length < 1) ? null : args[0];
+        try {
+            // Obtém uma referência para o registro do RMI
+            Registry registryClient = LocateRegistry.getRegistry(host,6601);
 
-     *********************************************************************/
+            // Obtém a stub do servidor
+            Cozinha stubCozinha = (Cozinha) registryClient.lookup("Preparo");
+            
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
 
-    /* ********************* Servidor para Mesa ************************
+        // Lógica de Negócio
+        // ...
+    }
 
-    implementar novaComanda, novoPedido, etc...
-
-
-     *********************************************************************/
 }
