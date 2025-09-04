@@ -121,7 +121,7 @@ public class Mesa {
 
                     case 4:
                         if (comandas.isEmpty()) {
-                            System.out.println("Nenhuma comanda aberta!");
+                            System.out.println("Nenhuma comanda aberta.");
                             break;
                         }
                         System.out.print("Código da comanda: ");
@@ -132,7 +132,7 @@ public class Mesa {
 
                     case 5:
                         if (comandas.isEmpty()) {
-                            System.out.println("Nenhuma comanda aberta!");
+                            System.out.println("Nenhuma comanda aberta.");
                             break;
                         }
                         System.out.print("Código da comanda: ");
@@ -143,7 +143,7 @@ public class Mesa {
                         break;
 
                     case 0:
-                        System.out.println("Saindo...");
+                        System.out.println("Volte sempre!");
                         break;
 
                     default:

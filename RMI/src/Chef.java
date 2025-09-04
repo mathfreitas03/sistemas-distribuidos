@@ -1,10 +1,13 @@
 import java.rmi.*;
 import java.rmi.server.*;
 import java.rmi.registry.*;
+import java.util.List;
 
 public class Chef implements Cozinha {
     public Chef() {}
 
+    private List<Preparo> preparos;
+    
      @Override
     public int novoPreparo(int comanda, String[] pedido) throws RemoteException {
         // TODO Auto-generated method stub
@@ -40,8 +43,5 @@ public class Chef implements Cozinha {
             ex.printStackTrace();
         }        
     }
-
-
-
    
 }

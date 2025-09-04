@@ -3,7 +3,6 @@ import java.rmi.server.*;
 import java.rmi.registry.*;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.io.BufferedReader;
@@ -18,12 +17,19 @@ public class ADM implements Restaurante {
     private int nextIdComanda = 0;
     private Restaurante stubRestaurante;
     private Cozinha stubCozinha;
+    private String[] cardapio;
 
     public ADM() {
         for(int i = 0; i < 10; i++) {
             Mesa mesa = new Mesa();
             mesa.setNum(i);
             mesas.put(i, new ArrayList<Comanda>());
+        }
+
+        try {
+            inicializarCardapio();
+        } catch (RemoteException e) {
+            e.printStackTrace();
         }
     }
 
@@ -33,6 +39,23 @@ public class ADM implements Restaurante {
 
     public void setStubRestaurante(Restaurante stubRestaurante) {
         this.stubRestaurante = stubRestaurante;
+    }
+
+    public void inicializarCardapio() throws RemoteException {
+        String file = "menu_restaurante.csv";
+        Path filePath = Paths.get("RMI", file);
+        List<String> cardapio = new ArrayList<>();
+        
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath.toFile()))) {
+            String linha;
+            while ((linha = br.readLine()) != null) {
+                cardapio.add(linha);
+            }
+        } catch (IOException e) {
+            throw new RemoteException("Erro ao ler o cardápio em " + filePath, e);
+        }
+
+        this.cardapio = cardapio.toArray(new String[0]);
     }
 
     // métodos da interface Restaurante
@@ -57,27 +80,24 @@ public class ADM implements Restaurante {
 
     @Override
     public String[] consultarCardapio() throws RemoteException {
-        String file = "menu_restaurante.csv";
-        Path filePath = Paths.get("RMI", file);
-        List<String> cardapio = new ArrayList<>();
-        
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath.toFile()))) {
-            String linha;
-            while ((linha = br.readLine()) != null) {
-                cardapio.add(linha);
-            }
-        } catch (IOException e) {
-            throw new RemoteException("Erro ao ler o cardápio em " + filePath, e);
-        }
-
-        return cardapio.toArray(new String[0]);
+        return this.cardapio;
     }
 
     
+    // Precisa do número da mesa como parâmetro, pois cada mesa tem sua própria lista de comandas...
+
     @Override
     public String fazerPedido(int comanda, String[] pedido) throws RemoteException {
         // Aqui também devemos implementar a lógica para incrementar o valor da comanda. 
-        // Um contador acumula o valor de cada item do array pedido (obtido com um splice de ',') e soma ao valor que já está na comanda
+
+        float valor = 0.0f;
+
+        for(String p : pedido) {
+            String[] components = p.split(",");
+            Float acc = Float.parseFloat(components[2]) ;
+
+            valor += acc;
+        }
 
         int idPreparo = stubCozinha.novoPreparo(comanda, pedido);
         
@@ -120,22 +140,20 @@ public class ADM implements Restaurante {
 
             registryServer.bind("Atendimento", stubRestaurante);
             System.out.println("Servidor rodando na porta " + port + "\n" + stubRestaurante );
+            server.setStubRestaurante(stubRestaurante);
+
+        // Cliente para Chef
+        String host = (args.length < 1) ? null : args[0];
+            // Obtém uma referência para o registro do RMI
+            Registry registryClient = LocateRegistry.getRegistry(host,6601);
+
+            // Obtém a stub do servidor
+            Cozinha stubCozinha = (Cozinha) registryClient.lookup("Preparo");
+            server.setStubCozinha(stubCozinha);
+            
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-
-        // Cliente para Chef
-        // String host = (args.length < 1) ? null : args[0];
-        // try {
-        //     // Obtém uma referência para o registro do RMI
-        //     Registry registryClient = LocateRegistry.getRegistry(host,6601);
-
-        //     // Obtém a stub do servidor
-        //     Cozinha stubCozinha = (Cozinha) registryClient.lookup("Preparo");
-            
-        // } catch (Exception ex) {
-        //     ex.printStackTrace();
-        // }
 
         // Lógica de Negócio
         // ...
