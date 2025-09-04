@@ -2,7 +2,10 @@ import java.rmi.*;
 import java.rmi.server.*;
 import java.rmi.registry.*;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -11,10 +14,18 @@ import java.nio.file.Paths;
 
 public class ADM implements Restaurante {
     
-    private ArrayList<Comanda> comandas;
-    private Cozinha stubCozinha;
+    private Map<Integer, List<Comanda>> mesas = new HashMap<>();
+    private int nextIdComanda = 0;
     private Restaurante stubRestaurante;
-    private int nextId = 0;
+    private Cozinha stubCozinha;
+
+    public ADM() {
+        for(int i = 0; i < 10; i++) {
+            Mesa mesa = new Mesa();
+            mesa.setNum(i);
+            mesas.put(i, new ArrayList<Comanda>());
+        }
+    }
 
     public void setStubCozinha(Cozinha stubCozinha) {
         this.stubCozinha = stubCozinha;
@@ -24,19 +35,24 @@ public class ADM implements Restaurante {
         this.stubRestaurante = stubRestaurante;
     }
 
-    public ADM() {
-        this.comandas = new ArrayList<Comanda>();
-    }
-
     // métodos da interface Restaurante
 
      @Override
-    public int novaComanda(String nome, int mesa) throws RemoteException {        
-        
-        Comanda cm = new Comanda(mesa, nextId++, nome);
-        comandas.add(cm);
+    public int novaComanda(String nome, int idMesa) throws RemoteException {        
+        try {
+            // verifica se a mesa existe no mapa
+            if (!mesas.containsKey(idMesa)) {
+                throw new Exception("A mesa indicada não existe");
+            }
 
-        return cm.getId();
+            Comanda cm = new Comanda(idMesa, nextIdComanda++, nome);
+            mesas.get(idMesa).add(cm);
+            return cm.getId();
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return -1;
     }
 
     @Override
@@ -57,9 +73,12 @@ public class ADM implements Restaurante {
         return cardapio.toArray(new String[0]);
     }
 
-
+    
     @Override
     public String fazerPedido(int comanda, String[] pedido) throws RemoteException {
+        // Aqui também devemos implementar a lógica para incrementar o valor da comanda. 
+        // Um contador acumula o valor de cada item do array pedido (obtido com um splice de ',') e soma ao valor que já está na comanda
+
         int idPreparo = stubCozinha.novoPreparo(comanda, pedido);
         
         return "OK";
@@ -67,17 +86,26 @@ public class ADM implements Restaurante {
 
     @Override
     public float valorComanda(int comanda) throws RemoteException {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'valorComanda'");
+        for (List<Comanda> listaComandas : mesas.values()) {
+            for (Comanda c : listaComandas) {
+                if(comanda == c.getId()) {
+                    return c.getValorAcumulado();
+                }
+            }
+        }
+        throw new RuntimeException("Comanda não encontrada");
     }
 
     @Override
     public boolean fecharComanda(int comanda) throws RemoteException {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'fecharComanda'");
+        for (List<Comanda> listaComandas : mesas.values()) {
+            boolean removed = listaComandas.removeIf(c -> c.getId() == comanda);
+            if (removed) {
+                return true;
+            }
+        }
+        return false;
     }
-
-    
 
     public static void main(String[] args) {
         // Server para Mesa

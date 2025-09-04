@@ -11,14 +11,11 @@ public class Chef implements Cozinha {
         throw new UnsupportedOperationException("Unimplemented method 'novoPreparo'");
     }
 
-
-
     @Override
     public int tempoPreparo(int preparo) throws RemoteException {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'tempoPreparo'");
     }
-
 
 
     @Override
